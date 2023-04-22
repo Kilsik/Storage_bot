@@ -18,7 +18,8 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 ADDRESS, DELIVERY_FROM, USER_ADDRESS, EMAIL, PHONE, CALC, WEIGHT, DELIVERY_TO,\
-    VOLUME, MONTHS, CHOICE, HANDL_CHOICE, DETAIL, FETCH, ADDRESS_TO = range(15)
+    VOLUME, MONTHS, CHOICE, HANDL_CHOICE, DETAIL, FETCH, ADDRESS_TO,\
+    PERSONAL = range(16)
 
 ONE, TWO = range(2)
 
@@ -52,6 +53,25 @@ def get_user_choice(update, _):
         reply_markup = InlineKeyboardMarkup(build_menu(button_list, n_cols=2))
         query.edit_message_text(text='Выберите действие', reply_markup=reply_markup)
         return HANDL_CHOICE
+
+
+def personal_data_consent(update, context):
+    query = update.callback_query
+    user = query.from_user
+    logger.info(f'Пользователь %s на соглашение о перс.данных ответил %s',
+        user.first_name, query.data)
+    if query.data == 'no':
+        query.edit_message_text(text='Приятно было с Вами пообщаться. До свидания.')
+        return ConversationHandler.END
+    elif query.data == 'yes':
+        button_list = []
+        for addr in adresses:
+            button_list.append(InlineKeyboardButton(addr,
+                callback_data=addr))
+        reply_markup = InlineKeyboardMarkup(build_menu(button_list, n_cols=2))
+        query.edit_message_text(text='Пожалуйста, выберите адрес хранения:',
+            reply_markup=reply_markup)
+        return ADDRESS
         
 
 def handle_choice(update, context):
@@ -61,15 +81,25 @@ def handle_choice(update, context):
     user = query.from_user
     if query.data == 'orderbox':
         query = update.callback_query
-        button_list = []
-        for addr in adresses:
-            button_list.append(InlineKeyboardButton(addr,
-                callback_data=addr))
-
+        text = '''Настоящим подтверждаю, что я ознакомлен и согласен с условиями Политики \
+        в отношении обработки персональных данных. Настоящим я даю разрешение \
+        ООО "Кладовка" (далее "Кладовка") в целях информирования об услугах, заключения \
+        и исполнения договора предоставления услуг обрабатывать - собирать, записывать, \
+        хранить, уточнять, извлекать, использовать, удалять, уничтожать - мои персональные \
+        данные: номер телефона, адрес электронной почты и почтовый адрес. Также я разрешаю \
+        "Кладовке" в целях информирования осуществлять обработку вышеперечисленных \
+        персональных данных и направлять на указанный мною адрес электронной почты \
+        и/или на номер мобильного телефона, а также с помощью системы мгновенного \
+        обмена сообщениями через Интернет информацию об услугах "Кладовки" и ее \
+        партнеров. Согласие может быть отозвано мною в любой момент путем направления \
+        письменного уведомления по адресу "Кладовки".'''
+        button_list = [
+            InlineKeyboardButton('Согласен', callback_data='yes'),
+            InlineKeyboardButton('Не согласен', callback_data='no'),
+        ]
         reply_markup = InlineKeyboardMarkup(build_menu(button_list, n_cols=2))
-        query.edit_message_text(text='Пожалуйста, выберите адрес хранения:',
-            reply_markup=reply_markup)
-        return ADDRESS
+        query.edit_message_text(text=text, reply_markup=reply_markup)
+        return PERSONAL
     elif query.data == 'user_boxes':
         button_list = []
         boxes = ['Box 1', 'Box 2', 'Box 3']
@@ -383,6 +413,7 @@ def main():
     conv_handler = ConversationHandler(
         entry_points=[CommandHandler('start', start)],
         states = {
+            PERSONAL: [CallbackQueryHandler(personal_data_consent)],
             CHOICE: [CallbackQueryHandler(get_user_choice)],
             HANDL_CHOICE: [CallbackQueryHandler(handle_choice)],
             DETAIL: [CallbackQueryHandler(show_detail)],
