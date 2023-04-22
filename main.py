@@ -385,8 +385,6 @@ def main():
         states = {
             CHOICE: [CallbackQueryHandler(get_user_choice)],
             HANDL_CHOICE: [CallbackQueryHandler(handle_choice)],
-            #ORDER: [CallbackQueryHandler(orderbox)],
-#            BOXES: [CallbackQueryHandler(show_boxes)],
             DETAIL: [CallbackQueryHandler(show_detail)],
             ADDRESS: [CallbackQueryHandler(delivery_from_method)],
             DELIVERY_FROM: [CallbackQueryHandler(pantry_delivery, pattern='^' + str(TWO) + '$'),
